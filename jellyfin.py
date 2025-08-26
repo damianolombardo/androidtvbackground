@@ -7,11 +7,28 @@ import unicodedata
 import re
 import shutil
 import textwrap
+from dotenv import load_dotenv
+load_dotenv(verbose=True)
 
 # Jellyfin Server Configuration (Global Parameters)
-baseurl = 'http://XXX:XXX'
-token = 'XXX'
-user_id ="XXX"
+baseurl = os.getenv('JELLYFIN_BASEURL')
+token = os.getenv('JELLYFIN_TOKEN')
+user_id = os.getenv('JELLYFIN_USER_ID')
+# try to connect to the server and get the user name
+
+try:
+    print('Trying to connect to JellyFin')
+    print(f'baseurl:{baseurl}')
+    print(f'token:{token}')
+    print(f'user_id:{user_id}')
+    url = f"{baseurl}/Users/{user_id}"
+    response = requests.get(url, headers={"X-Emby-Token": token})
+    response.raise_for_status()
+    data = response.json()
+    print(f"Connected to Jellyfin! User name: {data.get('Name')}")
+except requests.exceptions.RequestException as e:
+    print(f"Failed to connect to Jellyfin: {e}")
+    exit(1)
 
 # Save font locally
 truetype_url = 'https://github.com/googlefonts/roboto/raw/main/src/hinted/Roboto-Light.ttf'
