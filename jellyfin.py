@@ -84,7 +84,7 @@ def download_logo_in_memory(media_item):
         print(f"An error occurred while downloading the logo for {media_item['Name']}: {e}")
         return None
 
-def get_excluded_library_ids():
+def get_excluded_library_paths():
     """Fetch library IDs based on excluded library names."""
     headers = {'X-Emby-Token': token}
     response = requests.get(f"{baseurl}/Library/VirtualFolders", headers=headers)
@@ -92,12 +92,14 @@ def get_excluded_library_ids():
     if response.status_code == 200:
         libraries = response.json()
         # print(json.dumps(libraries,indent=4))
-        return {lib['ItemId'] for lib in libraries if lib['Name'] in excluded_libraries}
+        locs = [lib['Locations'] for lib in libraries if lib['Name'] in excluded_libraries]
+        locs = [item for sublist in locs for item in sublist]
+        return set(locs)
     else:
         print("Failed to retrieve library information.")
         return set()
 
-excluded_library_ids = get_excluded_library_ids()
+excluded_library_paths = get_excluded_library_paths()
 
 def download_latest_media(order_by, limit, media_type):
     headers = {'X-Emby-Token': token}
@@ -107,7 +109,7 @@ def download_latest_media(order_by, limit, media_type):
         'IncludeItemTypes': media_type,
         'Recursive': 'true',
         'SortOrder': 'Descending',
-        'Fields': 'PrimaryImageAspectRatio,CanDelete,MediaSourceCount,Overview,Genres,RunTimeTicks,CommunityRating,PremiereDate,Tags',
+        'Fields': 'Path,Overview,Genres,CommunityRating,PremiereDate,Tags',
     }
     response = requests.get(f"{baseurl}/Users/{user_id}/Items", headers=headers, params=params)
 
@@ -125,7 +127,7 @@ def download_latest_media(order_by, limit, media_type):
             continue
         if any(tag in excluded_tags for tag in item.get('Tags', [])):
             continue
-        if item.get('ParentId') in excluded_library_ids:
+        if any(excluded_path in item.get('Path') for excluded_path in excluded_library_paths):
             continue
         filtered_items.append(item)
 
