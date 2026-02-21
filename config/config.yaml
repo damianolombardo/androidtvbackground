@@ -1,0 +1,242 @@
+# Android TV Background Generator — settings file
+#
+# Credentials (API keys, server URLs, tokens) belong in .env — not here.
+# Everything in this file controls behaviour and appearance only.
+#
+# To use a different path for this file set CONFIG_FILE=/path/to/config.yaml
+# in your .env (or as an environment variable) before running main.py.
+
+# ---------------------------------------------------------------------------
+# Shared — applies to every generator
+# ---------------------------------------------------------------------------
+shared:
+  # Visual style: "color" (dynamic blurred background) or "overlay" (static canvas)
+  background_style: color
+
+  # Font used for all text. The default Roboto-Light is downloaded automatically.
+  # font_url: https://github.com/googlefonts/roboto/raw/main/src/hinted/Roboto-Light.ttf
+  # font_name: Roboto-Light.ttf
+
+  # Text colours — colour name string ("white") or [R, G, B] list
+  main_color: white
+  info_color: [150, 150, 150]
+  summary_color: white
+  metadata_color: white
+  shadow_color: black
+  shadow_offset: 2
+
+  # Summary wrapping
+  max_summary_chars: 525    # truncate overview before wrapping
+  max_summary_width: 2100   # max pixel width per wrapped line
+
+  # Line spacing (extra pixels between wrapped text lines)
+  line_spacing: 0
+
+  # Output format and quality
+  output_format: jpg        # jpg, png, or webp
+  output_quality: 95        # JPEG/WebP quality (1-95); ignored for PNG
+
+  # Canvas size (color style only; overlay uses bckg.png dimensions)
+  # canvas_width: 3840
+  # canvas_height: 2160
+
+  # Vignette parameters (color style only)
+  # vignette_fade_ratio: 0.3
+  # vignette_fade_power: 2.5
+  # vignette_blur_radius: 60
+  # vignette_offset_bottom: 150
+
+# ---------------------------------------------------------------------------
+# TMDB trending
+# Only runs automatically when no other service generator ran.
+# Use  python main.py --gen tmdb  to force it regardless.
+# ---------------------------------------------------------------------------
+tmdb:
+  number_of_movies: 5
+  number_of_tv_shows: 5
+  max_age_days: 90
+  custom_text: "Now Trending on"
+  output_dir: backgrounds/tmdb
+
+  # Exclude TV shows from these countries (ISO 3166-1 alpha-2, case-insensitive)
+  tv_excluded_countries: []
+  #   - jp
+  #   - kr
+
+  # Per-country genre exclusions ('*' blocks everything from that country)
+  tv_excluded_genres: {}
+  #   jp: [Animation, Drama]
+  #   kr: ["*"]
+
+  movie_excluded_countries: []
+  #   - jp
+
+  movie_excluded_genres: {}
+  #   jp: [Animation]
+
+  # Exclude any title whose TMDB keywords include one of these strings
+  excluded_keywords: []
+  #   - anime
+  #   - adult
+
+  # Per-service colour overrides (string name or [R, G, B] list)
+  # main_color_override: white
+  # info_color_override: [150, 150, 150]
+  # summary_color_override: white
+  # metadata_color_override: white
+
+# ---------------------------------------------------------------------------
+# Jellyfin
+# ---------------------------------------------------------------------------
+jellyfin:
+  order_by: mix             # "added" | "aired" | "mix"
+  download_movies: true
+  download_series: true
+  download_music: true
+  limit: 10
+  api_delay: 1.0            # seconds between API calls (reduces server load)
+  max_genres: 3
+  output_dir: backgrounds/jellyfin
+
+  # Content filters
+  excluded_genres: []       # e.g. [Horror, Thriller]
+  excluded_tags: []         # e.g. [Adult]
+  excluded_libraries: []    # e.g. [Web Videos]
+
+  # Labels shown before the Jellyfin logo on each image
+  added_label: "New or updated on"
+  aired_label: "Recent release, available on"
+  random_label: "Random pick from"
+  default_label: "Now Available on"
+
+  # Service logo alignment tweaks (pixels; positive = right/down)
+  logo_h_offset: 0
+  logo_v_offset: 0
+
+  # Per-service colour overrides (string name or [R, G, B] list)
+  # main_color_override: white
+  # info_color_override: [150, 150, 150]
+  # summary_color_override: white
+  # metadata_color_override: white
+
+# ---------------------------------------------------------------------------
+# Plex
+# ---------------------------------------------------------------------------
+plex:
+  order_by: mix             # "added" | "aired" | "mix"
+  download_movies: true
+  download_series: true
+  download_music: true
+  limit: 10
+  api_delay: 1.0
+  output_dir: backgrounds/plex
+
+  logo_variant: white       # "white" or "color"
+  logo_h_offset: 0
+  logo_v_offset: 7
+
+  added_label: "New or updated on"
+  aired_label: "Recent release, available on"
+  random_label: "Random pick from"
+  default_label: "New or updated on"
+
+  # Per-service colour overrides (string name or [R, G, B] list)
+  # main_color_override: white
+  # info_color_override: [150, 150, 150]
+  # summary_color_override: white
+  # metadata_color_override: white
+
+# ---------------------------------------------------------------------------
+# Plex Friends
+# Activated by PLEX_FRIEND_ENABLED=true in .env
+# ---------------------------------------------------------------------------
+plexfriend:
+  target_friend: null       # null = all friends, or a display name e.g. "Alice"
+  order_by: added           # "added" | "aired" | "mix"
+  download_movies: true
+  download_series: true
+  limit: 5
+  api_delay: 1.0
+  output_dir: backgrounds/plexfriend
+
+  logo_variant: white
+  logo_h_offset: 0
+  logo_v_offset: 7
+
+  added_label: "Now shared on"
+  aired_label: "Recent release, shared on"
+  random_label: "Shared on"
+
+  # Per-service colour overrides (string name or [R, G, B] list)
+  # main_color_override: white
+  # info_color_override: [150, 150, 150]
+  # summary_color_override: white
+  # metadata_color_override: white
+
+# ---------------------------------------------------------------------------
+# Radarr / Sonarr
+# ---------------------------------------------------------------------------
+radarrsonarr:
+  days_ahead: 7
+  logo_filename: jellyfinlogo.png
+  movie_custom_text: "New movie coming soon on"
+  tv_custom_text: "New episode coming soon on"
+  output_dir: backgrounds/radarrsonarr
+  api_delay: 0.0            # seconds between API calls
+  max_genres: 3
+
+  # Per-service colour overrides (string name or [R, G, B] list)
+  # main_color_override: white
+  # info_color_override: [150, 150, 150]
+  # summary_color_override: white
+  # metadata_color_override: white
+
+# ---------------------------------------------------------------------------
+# Trakt
+# ---------------------------------------------------------------------------
+trakt:
+  output_dir: backgrounds/trakt
+  api_delay: 0.0            # seconds between API calls
+  max_genres: 3
+
+  # Per-service colour overrides (string name or [R, G, B] list)
+  # main_color_override: white
+  # info_color_override: [150, 150, 150]
+  # summary_color_override: white
+  # metadata_color_override: white
+
+# ---------------------------------------------------------------------------
+# Lidarr
+# ---------------------------------------------------------------------------
+lidarr:
+  days_ahead: 30
+  logo_filename: lidarrlogo.png
+  custom_text: "New album coming soon on"
+  output_dir: backgrounds/lidarr
+  api_delay: 0.5            # seconds between API calls
+
+  # Per-service colour overrides (string name or [R, G, B] list)
+  # main_color_override: white
+  # info_color_override: [150, 150, 150]
+  # summary_color_override: white
+  # metadata_color_override: white
+
+# ---------------------------------------------------------------------------
+# Steam
+# ---------------------------------------------------------------------------
+steam:
+  recently_played_count: 5
+  unplayed_count: 5
+  random_count: 5
+  recently_played_label: "Recently played on"
+  unplayed_label: "Waiting to be played on"
+  random_label: "From your library on"
+  logo_filename: steamlogo.png
+  output_dir: backgrounds/steam
+  api_delay: 0.5            # seconds between API calls
+
+  # Per-service colour overrides (string name or [R, G, B] list)
+  # main_color_override: white
+  # info_color_override: [150, 150, 150]
+  # summary_color_override: white
+  # metadata_color_override: white
