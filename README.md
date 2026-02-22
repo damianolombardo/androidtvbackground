@@ -1,21 +1,14 @@
 # Android TV Background
 
-This is a simple script to retrieve Plex (your local server or friend's servers), Jellyfin, TMDB, Radarr/Sonarr or Trakt media background and use it as Android TV Wallpaper
-I developed this to use it with alternative Android TV launchers
+Automatically generates 4 K Android TV wallpapers from your media services.
+Each background shows the backdrop image, title logo (or text fallback),
+plot summary, metadata, and a custom tagline — ready to be picked up by
+your TV launcher.
 
 ![y](https://github.com/adelatour11/androidtvbackground/assets/1473994/8039b728-469f-4fd9-8ca5-920e57bd16d9)
 
 
-
-To use the script, you have to specify : 
-- Create a `.env` file by copying `.env.example` and update it with your various tokens and keys or by directly modifying the .py files below
-- For Plex.py script & plexfriend.py : your plex token and plex server url
-- For TMDB.py or TMDBlogo.py : your TMDB API Read Access Token
-- For radarrsonarr.py your TMDB API Read Access Token, your Radarr API key, you Sonarr API key
-- For Trakt.py, your Trakt client key, Trakt username, Trakt list name and TMDB API Read Access Token
-- For Jellyfin.py, your server url, an API token and a user_id 
-
-The scripts retrieves the background of the latests shows (movies or tv shows), resizes the image, add an overlay and add text or image on top
+The scripts retrieves the background of the latest media (movies, tv shows, music and games), resizes the image, add an overlay and add text or image on top
 
 ![image](https://github.com/user-attachments/assets/71923ddf-6b5b-4b1c-af46-d12d9a525b6c)
 
@@ -32,89 +25,296 @@ The scripts retrieves the background of the latests shows (movies or tv shows), 
 ![image](https://github.com/adelatour11/androidtvbackground/assets/1473994/2e92f213-21f9-4147-b678-0ee4dd0546ad)
 
 ![image](https://github.com/adelatour11/androidtvbackground/assets/1473994/03aecbcd-e2fd-4969-b0a2-0346d1842705)
+---
 
+## Visual styles
+
+### Color (default) — dynamic blurred & vignette background
 <img width="3840" height="2160" alt="image" src="https://github.com/user-attachments/assets/9c6fd3d9-99ec-4a7e-8845-49ce3daa7739" />
 
 ![Eddington_20250722](https://github.com/user-attachments/assets/02797fe1-5487-436b-b8c9-74c34978c3a0)
 
 ![Foundation_20250722](https://github.com/user-attachments/assets/9adcc755-879a-4b29-99dd-ce373ce141f4)
 
+### Overlay — static canvas compositing
+![image](https://github.com/user-attachments/assets/71923ddf-6b5b-4b1c-af46-d12d9a525b6c)
 
-**New Feature** :
+---
 
-You can now set the language for TMDB.py, TMDB_color.py, radarrsonarr.py and radarrsonarr_color.py
+## Supported services
 
-In your .env file you can specify a language code : ```TMDB_LANGUAGE = "pt-BR"```
+| Service             | What it shows                                                                           |
+| ---------------------| -----------------------------------------------------------------------------------------|
+| **TMDB trending**   | Weekly trending movies & TV shows from TMDB                                             |
+| **Jellyfin**        | Recently added / aired media from your Jellyfin server                                  |
+| **Plex**            | Recently added / aired media from your Plex server                                      |
+| **Plex Friends**    | Media from Plex libraries shared with you by friends                                    |
+| **Radarr / Sonarr** | Upcoming releases monitored in Radarr and Sonarr                                        |
+| **Trakt**           | Movies and shows from a Trakt user list                                                 |
+| **Lidarr**          | Upcoming album releases monitored in Lidarr                                             |
+| **Steam**           | Recently played, unplayed (waiting to be played), and random games from a Steam library |
 
-FYI, if there is no logo in the specified language it retrieves the english version logo/
+All generators support both visual styles (`color` and `overlay`).
 
-**New Scripts**
+---
 
-I have a included a series of scripts to have a colorized version of each background
-plex_color.py / TMDB_color.py / radarrsonarr_color.py / plexfriends_color.py
-It looks linke this
+## Quick start
 
-![One_Battle_After_Another_20251010](https://github.com/user-attachments/assets/1257d570-8c9b-4e11-8fb5-69369e9f3ba6)
+### 1 — Install dependencies
 
-![TRON_Ares_20251010](https://github.com/user-attachments/assets/cc898508-de38-4654-8a78-76cc8713b5b4)
+```bash
+pip install -r requirements.txt
+```
 
-![Monster_The_Ed_Gein_Story_20251010](https://github.com/user-attachments/assets/61f19068-68bc-433d-8177-75e366c696c7)
+### 2 — Create your `.env` file
 
+```bash
+cp .env.example .env
+```
 
+Open `.env` and fill in the credentials for the service(s) you want to use.
 
-**Note :**
-If you are looking for the docker version check out this branch https://github.com/adelatour11/androidtvbackground/tree/docker
+### 3 — Run
 
-**How to :**
-- install latest version of python (https://www.python.org/downloads/)
-- Install pip (follow the process here https://pip.pypa.io/en/stable/installation/)
-- Download the content of this repository
-- Go into the repository using a terminal and install dependencies :
-  ```
-  pip install -r requirements.txt
-  ```
-- Edit each python scripts with your info
-    - Specify you credentials
-        - for Plex check this article on how to find your plex token https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/
-        - for TMDB create an account and get you api key here there https://www.themoviedb.org/settings/api
-        - for Trakt create your account and go there https://trakt.tv/oauth/applications to create an app and retrieve your client id 
-- As you run one of the script it will create a new folder and add the images automatically.
-- Each time the scripts will run it will delete the content of the folder and create new images
-- if you want to edit the overlay and background image I have included the source file as a vector format 
+```bash
+python main.py
+```
 
+`main.py` auto-detects which services are configured and runs every enabled
+generator.  Output images are written to service-specific directories
+(e.g. `jellyfin_backgrounds/`, `plex_backgrounds/`).
 
-**If you want to edit the scripts :**
+---
 
-***Plex Script***
-- For the plex script you can specify the number of poster to generate, specify if you want to include movies and tv, specify if you want latest added or latest aired items. You can also edit the code to change the text position or content
-- the plexfriend.py script retrieves the tvshows and movies from your friends shared libraries
+## Service detection
 
-***TMDB Scripts***
-- Shows that do not have the logo on TMDB will just have the title displayed
-- You can edit the script to change the color, the text position or font, you can specify exclusion based on origin country code or genre
-- By default the script will retrieve the posters for the movies or TV shows whose last air date is older than 30 days from the current date. For the TV Shows, the episode last air date is considered.      
-- You can edit the code to change the endpoints for trending shows that is here
-  ```
-  trending_movies_url = f'{url}trending/movie/week?language=en-US'
-  trending_tvshows_url = f'{url}trending/tv/week?language=en-US'
-  ```
-  and replace it by using TMDB API Discover Endpoint
-  You can find details on Discovery endpoints here  :
+`main.py` checks for the following environment variables and runs the
+corresponding generator when all required variables are set:
 
-  https://developer.themoviedb.org/reference/discover-movie
+| Generator | Required env vars |
+|---|---|
+| Jellyfin | `JELLYFIN_BASEURL` + `JELLYFIN_TOKEN` + `JELLYFIN_USER_ID` |
+| Plex | `PLEX_BASEURL` + `PLEX_TOKEN` |
+| Plex Friends | `PLEX_TOKEN` + `PLEX_FRIEND_ENABLED=true` |
+| Radarr/Sonarr | `TMDB_BEARER_TOKEN` + `RADARR_API_KEY` and/or `SONARR_API_KEY` |
+| Trakt | `TRAKT_API_KEY` + `TRAKT_USERNAME` + `TRAKT_LISTNAME` |
+| Lidarr | `LIDARR_URL` + `LIDARR_API_KEY` |
+| Steam | `STEAM_API_KEY` + `STEAM_USER_ID` |
+| TMDB trending | `TMDB_BEARER_TOKEN` *(only when no other service ran)* |
 
-  https://developer.themoviedb.org/reference/discover-tv
+Multiple services can run in a single execution — one generator per
+configured service.
 
-  For example you can change the endpoints like this
+---
 
-  ```
-  # Endpoint for shows with genre action from 2022
-  trending_movies_url = f'{url}discover/movie?include_adult=false&include_video=false&language=en-US&page=1&sort_by=popularity.desc&with_genres=80&year=2022'
-  trending_tvshows_url = f'{url}discover/tv?first_air_date_year=2022&include_adult=false&include_null_first_air_dates=false&language=en-US&page=1&sort_by=popularity.desc&with_genres=80'
-  ```
-  
-  The genre is set by an id, you can get the list from these url
-  
-  https://developer.themoviedb.org/reference/genre-movie-list
-  
-  https://developer.themoviedb.org/reference/genre-tv-list
+## Configuration reference
+
+### Shared settings (all generators)
+
+| Variable | Default | Description |
+|---|---|---|
+| `BACKGROUND_STYLE` | `color` | `color` (dynamic blurred background) or `overlay` (static canvas) |
+
+### TMDB
+
+| Variable | Default | Description |
+|---|---|---|
+| `TMDB_BEARER_TOKEN` | *(required)* | TMDB API Read Access Token (JWT). Get one at [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) |
+| `TMDB_BASE_URL` | `https://api.themoviedb.org/3` | TMDB REST API base URL |
+| `TMDB_IMG_BASE` | `https://image.tmdb.org/t/p/original` | TMDB image CDN base URL |
+| `TMDB_LANGUAGE` | `en-US` | BCP-47 language tag for titles and genres |
+| `NUMBER_OF_MOVIES` | `5` | Number of movie backgrounds to generate |
+| `NUMBER_OF_TV_SHOWS` | `5` | Number of TV show backgrounds to generate |
+| `MAX_AGE_DAYS` | `90` | Exclude content whose release / last-air date is older than this |
+| `OUTPUT_DIR` | `tmdb_backgrounds` | Output directory |
+| `CUSTOM_TEXT` | `Now Trending on` | Tagline rendered on each image |
+
+### Jellyfin
+
+| Variable | Default | Description |
+|---|---|---|
+| `JELLYFIN_BASEURL` | *(required)* | Jellyfin server URL, e.g. `http://192.168.1.10:8096` |
+| `JELLYFIN_TOKEN` | *(required)* | Jellyfin API key |
+| `JELLYFIN_USER_ID` | *(required)* | Jellyfin user UUID |
+
+### Plex
+
+| Variable | Default | Description |
+|---|---|---|
+| `PLEX_BASEURL` | *(required)* | Plex server URL, e.g. `http://192.168.1.10:32400` |
+| `PLEX_TOKEN` | *(required)* | Plex authentication token |
+
+### Plex Friends
+
+| Variable | Default | Description |
+|---|---|---|
+| `PLEX_TOKEN` | *(required)* | Same token used for Plex |
+| `PLEX_FRIEND_ENABLED` | `false` | Set to `true` to enable this generator |
+
+### Radarr / Sonarr
+
+| Variable | Default | Description |
+|---|---|---|
+| `RADARR_URL` | — | Radarr base URL, e.g. `http://192.168.1.10:7878` |
+| `RADARR_API_KEY` | — | Radarr API key |
+| `SONARR_URL` | — | Sonarr base URL, e.g. `http://192.168.1.10:8989` |
+| `SONARR_API_KEY` | — | Sonarr API key |
+| `DAYS_AHEAD` | `7` | Days ahead to look for upcoming releases |
+| `RADARR_SONARR_LOGO` | `jellyfinlogo.png` | Service logo file pasted on each image |
+
+### Trakt
+
+| Variable | Default | Description |
+|---|---|---|
+| `TRAKT_API_KEY` | *(required)* | Trakt API client ID |
+| `TRAKT_USERNAME` | *(required)* | Trakt username |
+| `TRAKT_LISTNAME` | *(required)* | Trakt list slug (URL-friendly name) |
+
+### Lidarr
+
+| Variable | Default | Description |
+|---|---|---|
+| `LIDARR_URL` | *(required)* | Lidarr base URL, e.g. `http://192.168.1.10:8686` |
+| `LIDARR_API_KEY` | *(required)* | Lidarr API key (Settings → General → Security) |
+| `DAYS_AHEAD` | `30` | Days ahead to look for upcoming album releases |
+| `LIDARR_LOGO` | `lidarrlogo.png` | Service logo file pasted on each image |
+
+### Steam
+
+| Variable | Default | Description |
+|---|---|---|
+| `STEAM_API_KEY` | *(required)* | Steam Web API key — get one at [steamcommunity.com/dev/apikey](https://steamcommunity.com/dev/apikey) |
+| `STEAM_USER_ID` | *(required)* | 64-bit Steam ID (find yours at [steamid.io](https://steamid.io)) |
+| `STEAM_LOGO` | `steamlogo.png` | Service logo file pasted on each image |
+
+> **Note:** Steam's public API does not expose purchase dates. "Waiting to be played" shows
+> unplayed owned games (playtime = 0) as the closest available approximation.
+
+---
+
+## Customising behaviour
+
+All per-generator tuning — sort mode, item limits, labels, colours, font,
+and content filters — is done in **`config.yaml`**.  No Python files need
+to be edited for normal use.
+
+```yaml
+jellyfin:
+  order_by: mix        # "added" | "aired" | "mix"
+  limit: 10
+  download_music: true
+  excluded_genres: [Horror, Thriller]
+  excluded_libraries: [Web Videos]
+  added_label: "New or updated on"
+
+shared:
+  main_color: white
+  info_color: [150, 150, 150]   # RGB list
+```
+
+### TMDB content filtering
+
+```yaml
+tmdb:
+  # Exclude TV shows from these countries (ISO 3166-1 alpha-2)
+  tv_excluded_countries: [jp, kr]
+
+  # Per-country genre exclusions ('*' blocks all content from that country)
+  tv_excluded_genres:
+    jp: [Animation, Drama]
+    kr: ["*"]
+
+  movie_excluded_countries: [jp]
+  movie_excluded_genres:
+    jp: [Animation]
+
+  # Exclude any title whose TMDB keywords include one of these strings
+  excluded_keywords: [anime, adult]
+```
+
+Country codes are ISO 3166-1 alpha-2 (case-insensitive).
+Genre names must match TMDB genre names exactly (e.g. `Animation`, `Drama`).
+
+### Custom config file path
+
+By default `config.yaml` is read from the same directory as `main.py`.
+Override with the `CONFIG_FILE` env var in `.env` or the shell:
+
+```
+CONFIG_FILE=/etc/androidtvbg/config.yaml
+```
+
+---
+
+## Project structure
+
+```
+.
+├── main.py          # Entry point — run this
+├── config.yaml      # All behavioural/visual settings (edit this, not main.py)
+├── common.py        # All shared classes (configs, renderers, generators)
+├── bckg.png         # Static canvas for 'overlay' style
+├── overlay.png      # Semi-transparent overlay for 'overlay' style
+├── tmdblogo.png     # TMDB watermark (used by TMDB and Trakt generators)
+├── jellyfinlogo.png # Jellyfin service logo
+├── plexlogo.png     # Plex service logo (white variant)
+├── plexlogo_color.png  # Plex service logo (colour variant)
+├── traktlogo.png    # Trakt service logo
+├── lidarrlogo.png   # Lidarr service logo
+├── steamlogo.png    # Steam service logo
+├── .env             # Your local credentials (git-ignored)
+├── .env.example     # Template — copy to .env and fill in
+└── requirements.txt
+```
+
+> **Note:** `bckg.png` and `overlay.png` are only required when
+> `BACKGROUND_STYLE=overlay`.  The default `color` style generates its
+> canvas dynamically.
+
+---
+
+## Architecture
+
+All logic lives in `common.py`.  The public classes are:
+
+| Class | Role |
+|---|---|
+| `SharedConfig` | Visual/typography settings shared by all generators |
+| `TMDBConfig`, `JellyfinConfig`, `PlexConfig`, `LidarrConfig`, … | Per-service credentials and options |
+| `FontManager` | Downloads and caches fonts (Roboto → OpenSans → Lato → Poppins fallback chain) |
+| `ImageUtils` | Static helpers: resize, clean filename, wrap text by pixel width |
+| `OverlayRenderer` | Builds a canvas from `bckg.png` + `overlay.png` |
+| `ColorRenderer` | Builds a canvas using blurred & vignette compositing |
+| `TMDBGenerator` | TMDB trending pipeline |
+| `JellyfinGenerator` | Jellyfin pipeline |
+| `PlexGenerator` | Plex pipeline |
+| `PlexFriendGenerator` | Plex-friend-library pipeline |
+| `RadarrSonarrGenerator` | Radarr / Sonarr upcoming-releases pipeline |
+| `TraktGenerator` | Trakt list pipeline |
+| `LidarrGenerator` | Lidarr upcoming-albums pipeline |
+| `SteamGenerator` | Steam library pipeline |
+
+Each generator follows the same pattern:
+
+```python
+generator = SomeGenerator(service_cfg, shared_cfg, renderer, font_manager, source_dir)
+generator.run()
+```
+
+`make_renderer(shared)` and `make_font_manager(shared)` are convenience
+factory functions used by `main.py`.
+
+---
+
+## Docker
+
+For the Docker version see the
+[docker branch](https://github.com/adelatour11/androidtvbackground/tree/docker).
+
+---
+
+## Getting your TMDB token
+
+1. Create a free account at [themoviedb.org](https://www.themoviedb.org)
+2. Go to **Settings → API**
+3. Copy the **API Read Access Token** (long JWT string) into `TMDB_BEARER_TOKEN`
