@@ -2,10 +2,6 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install cron
-RUN apt-get update && apt-get install -y --no-install-recommends cron \
-    && rm -rf /var/lib/apt/lists/*
-
 # Install Python dependencies first for layer caching
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -15,17 +11,15 @@ COPY *.py ./
 COPY *.ttf ./
 COPY *.png ./
 COPY *.svg ./
+COPY androidtvbackground/ androidtvbackground/
 COPY config/ config/
 COPY entrypoint.sh .
 RUN chmod +x entrypoint.sh
 
-# Create output and log directories
-RUN mkdir -p backgrounds logs
+# Create fallback output directory (used when BACKGROUNDS_BASE_DIR is not set)
+RUN mkdir -p backgrounds && chmod 777 backgrounds
 
-VOLUME ["/app/backgrounds", "/app/logs"]
-
-# CRON_SCHEDULE controls how often main.py runs after the initial startup run.
-# Default: every hour on the hour. Override with -e CRON_SCHEDULE="*/30 * * * *" etc.
+# Cron schedule for recurring runs. Default: top of every hour.
 ENV CRON_SCHEDULE="0 * * * *"
 
 ENTRYPOINT ["./entrypoint.sh"]

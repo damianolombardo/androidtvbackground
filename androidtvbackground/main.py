@@ -23,11 +23,16 @@ Behavioural settings (limits, labels, filters, colours) come from config.yaml.
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
+import logging
 import os
+import shutil
 import sys
 
 import yaml
 from dotenv import load_dotenv
+
+logger = logging.getLogger("androidtvbg")
 
 from common import (
     JellyfinConfig,
@@ -126,8 +131,8 @@ def main() -> None:
     # ------------------------------------------------------------------
     # 2. Environment & config
     # ------------------------------------------------------------------
-    load_dotenv(verbose=False)
-    setup_logging()
+    load_dotenv(os.getenv("DOTENV_PATH") or None, verbose=False, override=False)
+    setup_logging(os.getenv("LOG_DIR", "logs"))
 
     _pkg_dir = os.path.dirname(os.path.abspath(__file__))
     _project_root = os.path.dirname(_pkg_dir)
@@ -144,9 +149,6 @@ def main() -> None:
     # ------------------------------------------------------------------
     shared = SharedConfig.from_env()
     _apply_shared(shared, yaml_cfg)
-
-    renderer = make_renderer(shared)
-    font_mgr = make_font_manager(shared)
 
     try:
         validate_source_files(source_dir, shared)
@@ -166,15 +168,69 @@ def main() -> None:
         print(f"{name}: {msg}", file=sys.stderr)
         sys.exit(1)
 
-    ran_any = False
+    # ------------------------------------------------------------------
+    # 4a. Optional collect directory — gather all service images in one place.
+    # ------------------------------------------------------------------
+
+    def _resolve_dir(raw: str) -> str:
+        """Resolve a possibly-relative directory path to an absolute one."""
+        base = os.getenv("BACKGROUNDS_BASE_DIR")
+        if base and not os.path.isabs(raw):
+            return os.path.join(base, os.path.relpath(raw, "backgrounds"))
+        if not os.path.isabs(raw):
+            return os.path.join(source_dir, raw)
+        return raw
+
+    collect_dir = _resolve_dir(shared.collect_dir) if shared.collect_dir else ""
+    collect_staging = collect_dir + ".staging" if collect_dir else ""
+
+    if collect_staging:
+        # Prepare a fresh staging dir; the live collect_dir is untouched until
+        # all services finish, keeping it consistent for readers throughout the run.
+        if os.path.exists(collect_staging):
+            shutil.rmtree(collect_staging)
+        os.makedirs(collect_staging)
+
+    def _collect(service_name: str, output_dir: str) -> None:
+        """Copy every image from *output_dir* into the collect staging dir,
+        prefixed with *service_name* so files from different services never collide."""
+        if not collect_staging or not os.path.isdir(output_dir):
+            return
+        for fname in os.listdir(output_dir):
+            src = os.path.join(output_dir, fname)
+            if os.path.isfile(src):
+                shutil.copy2(src, os.path.join(collect_staging, f"{service_name}_{fname}"))
+        logger.info("Staged %s images → %s", service_name, collect_staging)
+
+    def _commit_collect() -> None:
+        """Atomically replace the live collect dir with the staging dir."""
+        if not collect_staging or not os.path.isdir(collect_staging):
+            return
+        if os.path.exists(collect_dir):
+            shutil.rmtree(collect_dir)
+        os.rename(collect_staging, collect_dir)
+        logger.info("Collect dir committed → %s", collect_dir)
+
+    # ------------------------------------------------------------------
+    # 4b. Build per-service callables (each gets its own renderer/font_mgr
+    #     since those objects carry mutable state).
+    # ------------------------------------------------------------------
+
+    def _make_runner(gen_class, cfg, yaml_section):
+        """Capture cfg and return a zero-arg callable that runs the generator."""
+        _apply_section(cfg, yaml_cfg, yaml_section)
+        def _run():
+            gen_class(cfg, shared, make_renderer(shared), make_font_manager(shared), source_dir).run()
+        return _run
+
+    # Collect (name, output_dir, callable) for all non-TMDB services that have credentials.
+    service_runners: list[tuple[str, str, object]] = []
 
     # --- Jellyfin -------------------------------------------------------
     if should_run("jellyfin"):
         jf = JellyfinConfig.from_env()
         if jf.base_url and jf.token and jf.user_id:
-            _apply_section(jf, yaml_cfg, "jellyfin")
-            JellyfinGenerator(jf, shared, renderer, font_mgr, source_dir).run()
-            ran_any = True
+            service_runners.append(("jellyfin", jf.output_dir, _make_runner(JellyfinGenerator, jf, "jellyfin")))
         elif forced == "jellyfin":
             _abort("Jellyfin", "JELLYFIN_BASEURL, JELLYFIN_TOKEN, and JELLYFIN_USER_ID are required.")
 
@@ -182,9 +238,7 @@ def main() -> None:
     if should_run("plex"):
         px = PlexConfig.from_env()
         if px.base_url and px.token:
-            _apply_section(px, yaml_cfg, "plex")
-            PlexGenerator(px, shared, renderer, font_mgr, source_dir).run()
-            ran_any = True
+            service_runners.append(("plex", px.output_dir, _make_runner(PlexGenerator, px, "plex")))
         elif forced == "plex":
             _abort("Plex", "PLEX_BASEURL and PLEX_TOKEN are required.")
 
@@ -194,9 +248,7 @@ def main() -> None:
         friend_enabled = os.getenv("PLEX_FRIEND_ENABLED", "false").lower() == "true"
         if plex_token and (friend_enabled or forced == "plexfriend"):
             pf = PlexFriendConfig.from_env()
-            _apply_section(pf, yaml_cfg, "plexfriend")
-            PlexFriendGenerator(pf, shared, renderer, font_mgr, source_dir).run()
-            ran_any = True
+            service_runners.append(("plexfriend", pf.output_dir, _make_runner(PlexFriendGenerator, pf, "plexfriend")))
         elif forced == "plexfriend":
             _abort("PlexFriend", "PLEX_TOKEN is required and PLEX_FRIEND_ENABLED must be true.")
 
@@ -206,9 +258,7 @@ def main() -> None:
         has_radarr = bool(rs.radarr_url and rs.radarr_api_key)
         has_sonarr = bool(rs.sonarr_url and rs.sonarr_api_key)
         if rs.tmdb_bearer_token and (has_radarr or has_sonarr):
-            _apply_section(rs, yaml_cfg, "radarrsonarr")
-            RadarrSonarrGenerator(rs, shared, renderer, font_mgr, source_dir).run()
-            ran_any = True
+            service_runners.append(("radarrsonarr", rs.output_dir, _make_runner(RadarrSonarrGenerator, rs, "radarrsonarr")))
         elif forced == "radarrsonarr":
             _abort(
                 "RadarrSonarr",
@@ -219,9 +269,7 @@ def main() -> None:
     if should_run("trakt"):
         tr = TraktConfig.from_env()
         if tr.api_key and tr.username and tr.list_name:
-            _apply_section(tr, yaml_cfg, "trakt")
-            TraktGenerator(tr, shared, renderer, font_mgr, source_dir).run()
-            ran_any = True
+            service_runners.append(("trakt", tr.output_dir, _make_runner(TraktGenerator, tr, "trakt")))
         elif forced == "trakt":
             _abort("Trakt", "TRAKT_API_KEY, TRAKT_USERNAME, and TRAKT_LISTNAME are required.")
 
@@ -229,9 +277,7 @@ def main() -> None:
     if should_run("lidarr"):
         li = LidarrConfig.from_env()
         if li.base_url and li.api_key:
-            _apply_section(li, yaml_cfg, "lidarr")
-            LidarrGenerator(li, shared, renderer, font_mgr, source_dir).run()
-            ran_any = True
+            service_runners.append(("lidarr", li.output_dir, _make_runner(LidarrGenerator, li, "lidarr")))
         elif forced == "lidarr":
             _abort("Lidarr", "LIDARR_URL and LIDARR_API_KEY are required.")
 
@@ -239,11 +285,27 @@ def main() -> None:
     if should_run("steam"):
         st = SteamConfig.from_env()
         if st.api_key and st.user_id:
-            _apply_section(st, yaml_cfg, "steam")
-            SteamGenerator(st, shared, renderer, font_mgr, source_dir).run()
-            ran_any = True
+            service_runners.append(("steam", st.output_dir, _make_runner(SteamGenerator, st, "steam")))
         elif forced == "steam":
             _abort("Steam", "STEAM_API_KEY and STEAM_USER_ID are required.")
+
+    # ------------------------------------------------------------------
+    # 4c. Run all services concurrently (I/O-bound — threads give real
+    #     speedup even under the GIL).
+    # ------------------------------------------------------------------
+    ran_any = False
+
+    if service_runners:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(service_runners)) as pool:
+            futures = {pool.submit(fn): (name, out_dir) for name, out_dir, fn in service_runners}
+            for future in concurrent.futures.as_completed(futures):
+                name, out_dir = futures[future]
+                try:
+                    future.result()
+                    ran_any = True
+                    _collect(name, _resolve_dir(out_dir))
+                except Exception as exc:
+                    print(f"ERROR [{name}]: {exc}", file=sys.stderr)
 
     # --- TMDB (fallback or forced) --------------------------------------
     # Runs automatically only when no other generator ran, or when forced.
@@ -251,8 +313,9 @@ def main() -> None:
         tm = TMDBConfig.from_env()
         if tm.bearer_token:
             _apply_section(tm, yaml_cfg, "tmdb")
-            TMDBGenerator(tm, shared, renderer, font_mgr, source_dir).run()
+            TMDBGenerator(tm, shared, make_renderer(shared), make_font_manager(shared), source_dir).run()
             ran_any = True
+            _collect("tmdb", _resolve_dir(tm.output_dir))
         elif forced == "tmdb":
             _abort("TMDB", "TMDB_BEARER_TOKEN is required. Add it to your .env file.")
         else:
@@ -261,6 +324,8 @@ def main() -> None:
                 "Add credentials to .env — see .env.example and the README.",
                 file=sys.stderr,
             )
+
+    _commit_collect()
 
     if not ran_any:
         print(

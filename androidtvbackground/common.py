@@ -27,6 +27,8 @@ Logging
 from __future__ import annotations
 
 import atexit
+import html as _html
+import html.parser
 import logging
 import math
 import os
@@ -114,6 +116,39 @@ def _parse_color_env(var: str):
 
 
 # ---------------------------------------------------------------------------
+# HTML stripping
+# ---------------------------------------------------------------------------
+
+class _HTMLTextExtractor(html.parser.HTMLParser):
+    """Collect visible text from an HTML fragment, collapsing whitespace."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._parts: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        self._parts.append(data)
+
+    def get_text(self) -> str:
+        return " ".join(" ".join(self._parts).split())
+
+
+def _strip_html(text: str) -> str:
+    """Remove HTML tags and decode entities; collapse whitespace.
+
+    Falls back to the original string if parsing fails.
+    """
+    if not text or "<" not in text:
+        return text
+    try:
+        extractor = _HTMLTextExtractor()
+        extractor.feed(text)
+        return extractor.get_text() or text
+    except Exception:
+        return text
+
+
+# ---------------------------------------------------------------------------
 # Config dataclasses
 # ---------------------------------------------------------------------------
 
@@ -160,6 +195,10 @@ class SharedConfig:
     canvas_width: int  = 3840
     canvas_height: int = 2160
 
+    # Optional flat collection directory — when set, images from every service
+    # are also copied here (prefixed with the service name) after each run.
+    collect_dir: str = ""
+
     @classmethod
     def from_env(cls) -> "SharedConfig":
         return cls(
@@ -172,6 +211,7 @@ class SharedConfig:
             vignette_offset_bottom=int(os.getenv("VIGNETTE_OFFSET_BOTTOM", "150")),
             canvas_width=int(os.getenv("CANVAS_WIDTH", "3840")),
             canvas_height=int(os.getenv("CANVAS_HEIGHT", "2160")),
+            collect_dir=os.getenv("COLLECT_DIR", ""),
         )
 
 
@@ -1135,6 +1175,9 @@ class BaseGenerator(ABC):
 
     def _prepare_output_dir(self, output_dir: str) -> str:
         """Create a fresh staging directory; return its path."""
+        base = os.getenv("BACKGROUNDS_BASE_DIR")
+        if base and not os.path.isabs(output_dir):
+            output_dir = os.path.join(base, os.path.relpath(output_dir, "backgrounds"))
         staging = output_dir + self._STAGING_SUFFIX
         if os.path.exists(staging):
             shutil.rmtree(staging)
@@ -1212,7 +1255,7 @@ class BaseGenerator(ABC):
         )
 
     def _truncate(self, text: str) -> str:
-        return ImageUtils.truncate_summary(text, self._shared.max_summary_chars)
+        return ImageUtils.truncate_summary(_strip_html(text), self._shared.max_summary_chars)
 
     @staticmethod
     def _fetch_with_retry(

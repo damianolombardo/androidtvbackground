@@ -36,6 +36,13 @@ shared:
   output_format: jpg        # jpg, png, or webp
   output_quality: 95        # JPEG/WebP quality (1-95); ignored for PNG
 
+  # Optional: collect all generated images into one flat directory.
+  # Files are prefixed with the service name to avoid collisions, e.g.
+  # "jellyfin_Severance.jpg", "plex_Severance.jpg".
+  # The directory is wiped at the start of each run for a clean snapshot.
+  # Can also be set via COLLECT_DIR env var.
+  # collect_dir: backgrounds/all
+
   # Canvas size (color style only; overlay uses bckg.png dimensions)
   # canvas_width: 3840
   # canvas_height: 2160
