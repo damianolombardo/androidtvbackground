@@ -22,4 +22,7 @@ RUN mkdir -p backgrounds && chmod 777 backgrounds
 # Cron schedule for recurring runs. Default: top of every hour.
 ENV CRON_SCHEDULE="0 * * * *"
 
+# Static HTTP file server for the backgrounds directory.
+EXPOSE 8080
+
 ENTRYPOINT ["./entrypoint.sh"]

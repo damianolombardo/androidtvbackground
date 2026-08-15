@@ -311,6 +311,26 @@ factory functions used by `main.py`.
 For the Docker version see the
 [docker branch](https://github.com/adelatour11/androidtvbackground/tree/docker).
 
+### Serving backgrounds over HTTP
+
+The container runs a static file server for the backgrounds directory so the
+generated images are browsable on your network. Map the port when running:
+
+```bash
+docker run -p 8080:8080 ...
+```
+
+Then open `http://<host-ip>:8080/` — a directory listing of each generator's
+output (e.g. `tmdb/`, `plex/`), with the images served directly.
+
+| Env var | Default | Description |
+| --- | --- | --- |
+| `SERVE_HTTP` | `true` | Set to any other value to disable the file server |
+| `HTTP_PORT` | `8080` | Port the file server listens on |
+
+> **Note:** the server is read-only with no authentication — intended for a
+> trusted LAN only. Do not expose it directly to the internet.
+
 ---
 
 ## Getting your TMDB token

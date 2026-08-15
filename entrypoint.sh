@@ -27,6 +27,18 @@ export BACKGROUNDS_BASE_DIR
 
 CRON_SCHEDULE="${CRON_SCHEDULE:-0 * * * *}"
 
+# ── Static HTTP file server for the backgrounds directory ─────────────────────
+# Serves BACKGROUNDS_BASE_DIR (with directory listing) so generated images are
+# browsable over the network. Toggle with SERVE_HTTP, port with HTTP_PORT.
+SERVE_HTTP="${SERVE_HTTP:-true}"
+HTTP_PORT="${HTTP_PORT:-8080}"
+if [ "$SERVE_HTTP" = "true" ]; then
+    mkdir -p "$BACKGROUNDS_BASE_DIR"
+    echo "==> [http] Serving ${BACKGROUNDS_BASE_DIR} at http://0.0.0.0:${HTTP_PORT}/"
+    python3 -m http.server "$HTTP_PORT" --directory "$BACKGROUNDS_BASE_DIR" \
+        >>"$LOG_DIR/http.log" 2>&1 &
+fi
+
 # ── 1. Run immediately at container startup ───────────────────────────────────
 echo "==> [entrypoint] Initial run at $(date)"
 python /app/androidtvbackground/main.py || echo "==> [entrypoint] Initial run failed (exit $?), continuing to schedule"
